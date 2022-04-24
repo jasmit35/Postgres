@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+#
+#  Script: 1st.run
+#
+set -eo pipefail
+
+echo "---  1st_start_$(id -u)  ----------------------------------------"
+
+#  Function: file_env
+#    usage: file_env VAR [DEFAULT]
+#    ie: file_env 'XYZ_DB_PASSWORD' 'example'
+#      (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of "$XYZ_DB_PASSWORD" 
+#       from a file, especially for Docker's secrets feature)
+#
+file_env() {
+    local var="$1"
+    local fileVar="${var}_FILE"
+    local def="${2:-}"
+    if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
+	echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
+	exit 1
+    fi
+    local val="$def"
+    if [ "${!var:-}" ]; then
+	val="${!var}"
+    elif [ "${!fileVar:-}" ]; then
+	val="$(< "${!fileVar}")"
+    fi
+    export "$var"="$val"
+    unset "$fileVar"
+}
+
+exit
+
+################################################################################
+if [ "$(whoami)" == "root" ]; then
+    #  When we are running as root, do the following
+
+    echo "---  1st_root_sub_start  ----------------------------------------"
+ 
+    #
+    #  Build the AT&T directory structure
+    [ ! -d $PGBASE ] && mkdir -p $PGBASE                #  Persistent volume
+    [ ! -d $PGLOCAL ] && mkdir -p $PGLOCAL
+    [ ! -d $PGLOCAL/bin ] && mkdir -p $PGLOCAL/bin
+    [ ! -d $PGLOCAL/etc ] && mkdir -p $PGLOCAL/etc
+    [ ! -d $PGLOCAL/log ] && mkdir -p $PGLOCAL/log
+    [ ! -d $PGLOCAL/tmp ] && mkdir -p $PGLOCAL/tmp
+    [ ! -d $PGDATA ] && mkdir -p $PGDATA                #  Persistent volume
+    [ ! -d $PGTABLESPACES ] && mkdir -p $PGTABLESPACES
+    [ ! -d $PGBACKUP ] && mkdir -p $PGBACKUP            #  Persistent volume
+    [ ! -d $PGBACKUP/archive ] &&mkdir -p $PGBACKUP/archive
+    [ ! -d $PGLOG ] && mkdir -p $PGLOG
+    [ ! -d $PGXLOG ] && mkdir -p $PGXLOG                #  Persistent Volume
+
+    #
+    #  Create a softlink from the expected PGHOME to where it actually is
+    mkdir -p $PGBASE/product
+    cd $PGBASE/product
+    ln -s /usr/lib/postgresql/9.6 pgsql-9.6.6 
+
+    #  Change all the ownship to postgres  
+    chown -R postgres.postgres $PGBASE
+    chown -R postgres.postgres /usr/lib/postgresql
+
+    #  Now make global permission adjustment, lockdown comes later
+    chmod 750 $PGBASE
+
+    echo "---  1st_root_sub_end  ----------------------------------------"
+fi
+
+################################################################################
+#  When we are running as postgres, do the following
+if [ "$(whoami)" == "postgres" ]; then
+    echo "---  1st_pg_sub_start  ----------------------------------------"
+#  jasmit
+set -xv
+
+    #  Copy in the transfered files
+    cp /docker-entrypoint-initdb.d/att/bash_profile $HOME/.bash_profile
+
+    cp /docker-entrypoint-initdb.d/bin/* $PGLOCAL/bin
+    cp /docker-entrypoint-initdb.d/etc/* $PGLOCAL/etc
+    cp /docker-entrypoint-initdb.d/lib/* $PGHOME/lib
+
+    #  Set up the properties file. It is the flag for our 1st.run.
+    ln -s $PGLOCAL/etc/postgres.properties $PGPROPERTIES 
+
+    #  Now make permission adjustments as necessary
+    chmod -R 750 $PGBASE
+    chmod -R 700 $PGLOG
+    chmod -R 700 $PGXLOG
+    chmod 640 $PGLOCAL/etc/*
+
+    #  Set up a random password for the postgres account 
+    # PGPassWord=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | egrep '^[a-zA-Z]+[0-9]' | head -n 1 `
+    # PGPassWord=`cat /dev/urandom `  # jasmit this fails
+    # PGPassWord="fred"
+    PGPassWord=`dd bs=32 count=1 if=/dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | egrep '^[a-zA-Z]+[0-9]' | head -n 1 `
+    echo "$PGPassWord" > $PGBASE/.passwd
+    chmod 600 $PGBASE/.passwd
+
+    mv $PGLOCAL/etc/pgpass $PGBASE/.pgpass
+    sed -i "s/<password>/$PGPassWord/" $PGBASE/.pgpass
+    chmod 600 $PGBASE/.pgpass
+
+    #  Change to the etc directory to pick up fies using file_env
+    echo "Current directory - $(pwd)"
+    cd $PGLOCAL/etc
+
+    #  Set up the arguments for the initdb command
+    file_env 'POSTGRES_DB' 'pgdb'
+    file_env 'POSTGRES_USER' 'postgres'
+
+
+    #  The money shot
+    POSTGRES_INITDB_ARGS="\
+        --local=en_US.utf8 \
+        --pgdata=$PGDATA \
+        --data-checksums \
+        --auth=md5 \
+        --username=$POSTGRES_USER \
+        --pwfile=$PGBASE/.passwd \
+        --xlogdir=$POSTGRES_INITDB_XLOGDIR"
+
+    eval "initdb $POSTGRES_INITDB_ARGS"
+
+    #
+    #  NOTE: You have to run initdb BEFORE you put anything into PGDATA
+    #
+
+
+    #   
+    PGUSER="$POSTGRES_USER" pg_ctl -D "$PGDATA" -o "-c listen_addresses='localhost'" -w start
+    
+    
+    psql=( psql -v ON_ERROR_STOP=1 )
+    
+    if [ "$POSTGRES_DB" != 'postgres' ]; then
+    "${psql[@]}" --username $POSTGRES_USER <<-EOSQL
+	CREATE DATABASE "$POSTGRES_DB";
+	EOSQL
+    fi
+    
+    if [ "$POSTGRES_USER" = 'postgres' ]; then
+        op='ALTER'
+    else
+        op='CREATE'
+    fi
+
+    "${psql[@]}" --username postgres <<-EOSQL
+	$op USER "$POSTGRES_USER" WITH SUPERUSER ;
+	EOSQL
+    
+#    psql+=( --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" )
+    psql+=( --dbname "$POSTGRES_DB" )
+
+    for f in /docker-entrypoint-initdb.d/*; do
+        case "$f" in
+        *.sh)     echo "$0: running $f"; . "$f" ;;
+        *.sql)    echo "$0: running $f"; "${psql[@]}" -f "$f"; echo ;;
+        *.sql.gz) echo "$0: running $f"; gunzip -c "$f" | "${psql[@]}"; echo ;;
+        *)        echo "$0: ignoring $f" ;;
+        esac
+    done
+
+    PGUSER="${PGUSER:-postgres}" pg_ctl -D "$PGDATA" -m fast -w stop
+
+    #  Configuration
+    cat $PGLOCAL/etc/append.postgresql.conf >>$PGDATA/postgresql.conf
+    if [[ -f $PGDATA/pg_hba.conf ]]; then
+        mv $PGDATA/pg_hba.conf $PGDATA/pg_hba.conf.old
+    fi
+    mv $PGLOCAL/etc/pg_hba.conf $PGDATA
+    serverip=$(hostname -i)
+    sed -i "s/<server_ip>/$serverip/" $PGDATA/pg_hba.conf
+
+
+    #  Complete the properties file 
+    echo "PGBASE=\"$PGBASE\"" >>$PGPROPERTIES
+    echo "PGLOCAL=\"$PGBASE/local\"" >>$PGPROPERTIES
+    echo "PGDATA=\"$PGBASE/data/pgdb\"" >>$PGPROPERTIES
+    echo "PGTABLESPACES=\"$PGBASE/data/tablespaces\"" >>$PGPROPERTIES
+    echo "PGLOG=\"$PGBASE/log\"" >>$PGPROPERTIES
+    echo "PGXLOG=\"$PGBASE/pg_xlog\"" >>$PGPROPERTIES
+    echo "PGBACKUP=\"$PGBASE/backup\"" >>$PGPROPERTIES
+    echo "PGHOME=\"$PGBASE/product/pgsql-9.6.6\"" >>$PGPROPERTIES
+    echo "PGPROPERTIES=\"$PGBASE/postgres.properties\"" >>$PGPROPERTIES
+
+    #  Cleanup installation artifacts
+    rm $PGBASE/local/etc/*_FILE
+
+    echo "---  1st_pg_sub_end  ----------------------------------------"
+fi
+# 
+
+echo "---  1st_end_$(id -u)  ----------------------------------------"
+#

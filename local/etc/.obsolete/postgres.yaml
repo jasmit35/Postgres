@@ -1,0 +1,38 @@
+kind: Pod
+apiVersion: v1
+metadata:
+    name: postgres-pod
+    namespace: com-jasmit-pgpods
+spec:
+#    imagePullSecrets:
+#      - name: dockercentral
+    containers:
+      - name: postgres-container
+        image: com-jasmit-pgpods/pgpods-server:0.0.5 
+        tty: true
+        stdin: true
+        ports:
+        - containerPort: 5432 
+          protocol: "TCP"
+        volumeMounts:
+          - mountPath: "/opt/app/postgres"
+            name: postgres-base-storage
+          - mountPath: "/opt/app/postgres/data"
+            name: postgres-data-storage
+          - mountPath: "/opt/app/postgres/pg_xlog"
+            name: postgres-xlog-storage
+          - mountPath: "/opt/app/postgres/backup"
+            name: postgres-bkup-storage
+    volumes:
+      - name: postgres-base-storage
+        persistentVolumeClaim:
+          claimName: postgres-base-claim
+      - name: postgres-data-storage
+        persistentVolumeClaim:
+          claimName: postgres-data-claim
+      - name: postgres-xlog-storage
+        persistentVolumeClaim:
+          claimName: postgres-xlog-claim
+      - name: postgres-bkup-storage
+        persistentVolumeClaim:
+          claimName: postgres-bkup-claim

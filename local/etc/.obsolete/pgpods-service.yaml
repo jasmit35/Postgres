@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: pgpods-service
+  namespace: com-jasmit-pgpods
+  labels:
+    app: pgpods 
+    role: service
+spec:
+  selector:
+    app: pgpods 
+  type: NodePort
+  ports:
+    - name: pgpods-service 
+      port: 5432
+      targetPort: 5432
+      protocol: TCP

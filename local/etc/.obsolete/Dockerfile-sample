@@ -1,0 +1,81 @@
+FROM postgres:12.5
+
+#  Environment variables in postgres base image
+ENV LANG="en_US.utf8"
+ENV POSTGRES_USER="postgres"
+# ENV PG_MAJOR=9.6
+# ENV PG_VERSION=9.6.6
+ENV POSTGRES_DB="pgdb"
+ENV PGDATA="/opt/app/postgres/data/pgdb"
+ENV POSTGRES_INITDB_XLOGDIR="/opt/app/postgres/pg_xlog/pgdb"
+ENV POSTGRES_INITDB_ARGS=""
+
+# ENV PGVER=9.6.6
+# ENV PGHOST=localhost
+ENV PGBASE=/opt/app/postgres
+ENV PGHOME=$PGBASE/product/pgsql-12.4
+ENV PGLOCAL=$PGBASE/local
+ENV PGTABLESPACES=$PGBASE/data/tablespaces
+ENV PGBACKUP=$PGBASE/backup
+ENV PGLOG=$PGBASE/log
+ENV PGXLOG=$PGBASE/pg_xlog/pgdb
+ENV PGPROPERTIES=$PGBASE/postgres.properties
+
+ENV PATH=$PATH:$PGHOME/bin:$PGLOCAL/bin
+
+# RUN echo "nameserver ns2.sfdc.sbc.com" > /etc.resolv.conf \ 
+#    && echo "search com-att-dbaas.svc.cluster.local svc.cluster.local cluster.local itservices.sbc.com" >> /etc/resolv.conf \
+#    && echo "options ndots:5" >> /etc/resolv.conf
+
+# RUN echo "http_proxy=http://one.proxy.att.com:8080" >> /etc/environment \
+#    && echo "https_proxy=http://one.proxy.att.com:8080" >> /etc/environment \
+#    && echo "no_proxy=127.0.0.1,localhost,135.165.242.20,135.165.242.21,135.165.242.22" >> /etc/environment \
+#    && echo 'Acquire::http::proxy "http://one.proxy.att.com:8080/";' >> /etc/apt/apt.conf \
+#    && echo 'Acquire::https::proxy "http://one.proxy.att.com:8080/";' >> /etc/apt/apt.conf
+
+# RUN echo "http_proxy=http://135.28.13.11:8080" >> /etc/environment \
+#     && echo "https_proxy=http://135.28.13.11:8080" >> /etc/environment \
+#     && echo "no_proxy=127.0.0.1,localhost,135.165.242.20,135.165.242.21,135.165.242.22" >> /etc/environment \
+#     && echo 'Acquire::http::proxy "http://135.28.13.11:8080/";' >> /etc/apt/apt.conf \
+#     && echo 'Acquire::https::proxy "http://135.28.13.11:8080/";' >> /etc/apt/apt.conf
+
+# RUN apt-get update && apt-get upgrade && apt-get install rsync
+# RUN apt-get update && apt-get upgrade && apt-cache policy rsync
+
+# RUN apt-get autoclean && apt-get -y update && apt-get -y upgrade && apt-get -y install rsync
+RUN apt-get autoclean && apt-get -y update && apt-get -y upgrade 
+
+RUN set -x \
+#  Update /etc/security/limits.conf
+        && echo "@postgres             soft    nofile          65536" >> /etc/security/limits.conf \
+        && echo "@postgres             hard    nofile          65536" >> /etc/security/limits.conf \
+        && echo "@postgres             soft    nproc           16384" >> /etc/security/limits.conf \
+        && echo "@postgres             hard    nproc           16384" >> /etc/security/limits.conf \
+        && echo "@postgres             soft    stack           32768" >> /etc/security/limits.conf \
+        && echo "@postgres             hard    stack           unlimited" >> /etc/security/limits.conf \
+#  Adjust postgres account
+        && mkdir -p $PGBASE \
+        && chown -R postgres:postgres $PGBASE \
+        && chmod 750 $PGBASE \
+        && usermod --shell /bin/bash --home $PGBASE postgres
+
+#  Add our init files
+COPY copysrc/ /docker-entrypoint-initdb.d/
+COPY copysrc/docker-entrypoint.sh /usr/local/bin/
+RUN set -x \
+    && chmod -R 755 /usr/local/bin/docker-entrypoint.sh \
+    && chown -R postgres:postgres /usr/local/bin/docker-entrypoint.sh \
+    && ln -sf /usr/local/bin/docker-entrypoint.sh / \
+    && chmod -R 755 /docker-entrypoint-initdb.d \
+    && chown -R postgres:postgres /docker-entrypoint-initdb.d 
+
+
+#  Expose the port the image defined, we will remap it with the run command
+EXPOSE 5432
+
+#  Our startup script
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+#  Pass the vaule "postgres" to the startup 
+# CMD ["postgres"]
+CMD ["/bin/bash"]

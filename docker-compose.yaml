@@ -1,0 +1,23 @@
+#
+#  docker-compose.yaml
+#
+version: "3"
+services:
+
+  server:
+    build: ./server 
+    container_name: postgres-server
+    restart: always
+    volumes:
+      - postgres-data:/opt/app/postgres/data
+    networks:
+      - postgres-network
+    ports:
+      - 5432:5432
+
+networks:
+  postgres-network:
+
+volumes:
+  postgres-data:
+    external: true

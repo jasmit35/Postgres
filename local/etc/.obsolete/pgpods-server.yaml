@@ -1,0 +1,35 @@
+kind: Pod 
+apiVersion: v1 
+metadata:
+  name: pgpods-server
+  namespace: com-jasmit-pgpods
+spec:
+#   selector:
+#     matchLabels:
+#       app: pgpods 
+#       version: v1
+#   replicas: 1
+#   template:
+#     metadata:
+#       labels:
+#         app: pgpods
+    containers:
+      - name: pgpods-container
+        image: com-jasmit-pgpods/pgpods-server:0.3.7
+        tty: true
+        stdin: true
+        ports:
+        - containerPort: 5432
+          protocol: "TCP"
+        volumeMounts:
+          - mountPath: "/opt/app/pgpods"
+            name: pgpods-base-storage
+          - mountPath: "/opt/app/pgpods/data"
+            name: pgpods-data-storage
+    volumes:
+      - name: pgpods-base-storage
+        persistentVolumeClaim:
+          claimName: pgpods-base-claim
+      - name: pgpods-data-storage
+        persistentVolumeClaim:
+          claimName: pgpods-data-claim

@@ -1,0 +1,42 @@
+kind: StatefulSet 
+apiVersion: apps/v1
+kind: StatefulSet 
+metadata:
+  name: pgpods-server
+  namespace: com-jasmit-pgpods
+  labels:
+    app: pgpods
+    role: service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgpods 
+      role: service
+  serviceName: pgpods-service 
+  template:
+    metadata:
+      labels:
+        app: pgpods
+        role: service
+  containers:
+    - name: pgpods-container
+      image: com-jasmit-pgpods/pgpods-server:0.3.7
+      # tty: true
+      # stdin: true
+      ports:
+      - containerPort: 5432
+        name: pgpods-servive
+        protocol: "TCP"
+      volumeMounts:
+        - mountPath: "/opt/app/pgpods"
+          name: pgpods-base-storage
+        - mountPath: "/opt/app/pgpods/data"
+          name: pgpods-data-storage
+  volumes:
+    - name: pgpods-base-storage
+      persistentVolumeClaim:
+        claimName: pgpods-base-claim
+    - name: pgpods-data-storage
+      persistentVolumeClaim:
+        claimName: pgpods-data-claim

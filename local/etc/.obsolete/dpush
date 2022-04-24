@@ -1,0 +1,12 @@
+#
+#Need to add date
+
+# docker tag postgres:9.6.6-att dockercentral.it.att.com:5100/com.att.dbaas.public/postgres:9.6.6-att
+# docker tag 9.6.6-att dockercentral.it.att.com:5100/com.att.dbaas.public/postgres:9.6.6-att
+# docker tag com.att.dbaas/postgres dockercentral.it.att.com:5100/com.att.dbaas.public/postgres:9.6.6-att
+docker tag com.att.dbaas/postgres:9.6.6-att dockercentral.it.att.com:5100/com.att.dbaas.public/postgres:9.6.6-att
+
+
+docker push dockercentral.it.att.com:5100/com.att.dbaas.public/postgres:9.6.6-att
+
+
