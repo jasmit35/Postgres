@@ -1,0 +1,62 @@
+#
+#  statefulset.yaml
+#
+kind: StatefulSet 
+apiVersion: apps/v1
+metadata:
+  name: postgres-statefulset
+  namespace: postgres
+  labels:
+    app: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres 
+  serviceName: postgres-service 
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres-container
+        image: jasmit/postgres-server:v0.3.5
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-volume-claim
+          mountPath: /opt/app/postgres/data
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-volume-claim
+      namespace: postgres
+    spec:
+      storageClassName: local-path
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 16Gi
+
+
+
+
+#   volumes:
+#   - name: postgres-volume-claim
+#     persistentVolumeClaim:
+#       claimName: postgres-pvc
+
+
+#   volumeClaimTemplates:
+#   - metadata:
+#       name: postgres-volume-claim
+#       namespace: postgres
+#     spec:
+#       accessModes: [ "ReadWriteOnce" ]
+#       storageClassName: ""
+#       volumeName: postgres-volume 
+#       resources:
+#         requests:
+#           storage: 16Gi

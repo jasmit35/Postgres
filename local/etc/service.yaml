@@ -1,0 +1,20 @@
+#
+#  Postgres StatefulSet Service
+#
+kind: Service
+apiVersion: v1
+metadata:
+  name: postgres-service
+  namespace: postgres
+  labels:
+    app: postgres 
+spec:
+  selector:
+    app: postgres
+  type: LoadBalancer
+#   clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+#      name: postgres-port
+
