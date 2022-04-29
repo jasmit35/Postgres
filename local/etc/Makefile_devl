@@ -2,7 +2,8 @@
 #  Makefile
 #
 
-NEW_VERSION := "v0.3.5"
+OLD_VERSION := "v0.3.5"
+NEW_VERSION := "v0.3.6"
 
 .PHONY: create-volume delete-volume create-network delete-network \
   create-image run-image list-image stop-image remove-image push-image
@@ -10,46 +11,64 @@ NEW_VERSION := "v0.3.5"
 ################################################################################
 
 create-volume:
+	@echo '---  volumes  ---'
 	docker volume create --name=postgres-data
 	docker volume ls
+	@echo ''
 
 delete-volume:
+	@echo '---  volumes  ---'
 	docker volume rm postgres-data
 	docker volume ls
+	@echo ''
 
 
 ################################################################################
 
 create-network:
+	@echo '---  networks ---'
 	docker network create postgres-network
 	docker network ls
+	@echo ''
 
 delete-network:
+	@echo '---  networks ---'
 	docker network rm postgres-network
-	docker network rm postgres_postgres-network
 	docker network ls
+	@echo ''
 
 
 ################################################################################
 
 create-image:
+	@echo '---  create image  ---'
 	docker-compose build
 	docker tag postgres_server:latest jasmit/postgres-server:${NEW_VERSION}
+	@echo ''
 
-run-image:
-	docker-compose up -d
+delete-image:
+	@echo '---  delete image  ---'
+	docker image rm jasmit/postgres-server:${NEW_VERSION}
 	docker-compose ps 
+	@echo ''
+
+
+################################################################################
 
 list-images:
 	docker images | grep postgres
 
+run-image:
+	@echo '---  run image  ---'
+	docker-compose up -d
+	docker-compose ps 
+	@echo ''
+
 stop-image:
+	@echo '---  stop image  ---'
 	docker-compose stop server
 	docker-compose ps 
-
-delete-image:
-	docker image rm jasmit/postgres-server:${NEW_VERSION}
-	docker-compose ps 
+	@echo ''
 
 push-image:
 	docker push jasmit/postgres-server:${NEW_VERSION}
@@ -57,26 +76,36 @@ push-image:
 
 ################################################################################
 
-ps:
-	docker-compose ps 
+create-all: create-volume create-network create-image run-image
 
-exec:
-	docker-compose exec -it server /bin/bash
+delete-all: stop-image delete-image delete-network delete-volume
+
+delete: stop-image
+
+create: run-image
+
+################################################################################
+
+ps:
+	docker volume ls
+	@echo ''----------------------------------------
+	@echo ''
+	docker container ls
+	@echo ''----------------------------------------
+	@echo ''
+	docker network ls
+	@echo ''----------------------------------------
+	@echo ''
+	docker ps
+	@echo ''----------------------------------------
+	@echo ''
 
 logs:
 	docker-compose logs server 
 
+exec:
+	docker exec -it postgres-server /bin/bash
 
-################################################################################
-
-clean: stop-image remove-image
-
-clean-all: stop-image remove-image delete-volume delete-network
 	
 ################################################################################
 
-
-
-
-
-################################################################################

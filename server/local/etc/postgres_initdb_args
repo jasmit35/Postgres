@@ -1,1 +1,0 @@
-"--local=en_US.utf8 --pgdata=$PGDATA --data-checksums --auth=md5 --username=postgres --pwfile=$PGBASE/.passwd"

@@ -16,7 +16,7 @@ USER root
 WORKDIR $PGBASE 
 COPY local local
 RUN chown -R $POSTGRES_USER:$POSTGRES_USER $PGBASE
-RUN chmod -R 777 $PGBASE
+RUN chmod -R 0750 $PGBASE
 # USER ${POSTGRES_USER}
 
 #  Expose the port the image defined
