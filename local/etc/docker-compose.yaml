@@ -13,7 +13,7 @@ services:
     networks:
       - postgres-network
     ports:
-      - 5432:5430
+      - 5430:5432
 
 networks:
   postgres-network:
