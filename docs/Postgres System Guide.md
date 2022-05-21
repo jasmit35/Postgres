@@ -1,5 +1,4 @@
 # Postgres System Guide
-## Initial installation
 
 ## Development Cycle
 
@@ -47,11 +46,25 @@ If thier are more items you wish to complete on the defects and enhancements doc
 `make push-image`
 
 
-##  Deployment in Test & Production
+##  Deployment in Test
+Perform the standard update process:
+
+```
+cd ~/test
+auto-update -a postgres -e test
+```
+
+Switch to the configuration directory and change to the test config:
+
+```
+cd /Users/jeff/devl/Postgres/local/etc
+rm Makefile
+ln -s Makefile_test Makefile
+```
+
 Shutdown the existing components:
 
-`make stop`
-
+`make sto
 `make rm`
 
 `docker network rm postgres-network`
