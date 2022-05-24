@@ -14,13 +14,13 @@ create-image:
 	docker build .
 	docker tag postgres_server:latest jasmit/postgres-server:${NEW_VERSION}
 
-push:
+push-image:
 	docker push jasmit/postgres-server:${NEW_VERSION}
 
 delete-image:
 	docker image rm jasmit/postgres-server:${OLD_VERSION}
 
-list:
+list-images:
 	docker images | grep postgres
 
 

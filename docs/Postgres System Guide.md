@@ -45,7 +45,6 @@ If thier are more items you wish to complete on the defects and enhancements doc
 
 `make push-image`
 
-
 ##  Deployment in Test
 Perform the standard update process:
 
@@ -57,46 +56,71 @@ auto-update -a postgres -e test
 Switch to the configuration directory and change to the test config:
 
 ```
-cd /Users/jeff/devl/Postgres/local/etc
-rm Makefile
+cd /Users/jeff/test/Postgres/local/etc
 ln -s Makefile_test Makefile
 ```
 
-Shutdown the existing components:
+Determine if any existing components are running and if so, shut them down:
 
-`make sto
-`make rm`
+```
+make ps
+```
 
-`docker network rm postgres-network`
+Pull the new docker image: (not sure this is necessary)
 
-`make volume-rm`
+```
+docker pull jasmit/postgres-server:v0.3.x
+```
 
-Run the update script:
+Use the Makefile to build it all, then check the results:
 
-`auto-update -a pgpods`
+```
+make build-all
+make ps
+make logs
+```
 
-Pull the new docker image:
-
-`docker pull jasmit/pgpods:v0.3.x`
-
-Complete the normal auto_update steps from Fire-Starter.
-
-Create the file pgpods/.secrets-db-data that holds the Postgres account's password. This file does not get saved to Git Hub (on purpose) and must be recreated each time.
-
-Rebuild the network and storage componets:
-
-`make network-create`
-
-`make storage-create`
-
-Relaunch the container:
-
-`make build`
-
-`make run`
+##  Deployment in Production
+If this is the first time for production deployment, you need to complete the steps in Appendix A to set up the NFS storage.
 
 
-## NFS persistant storage
+
+Perform the standard update process:
+
+```
+cd ~/prod
+auto-update -a Postgres -e prod
+```
+
+Switch to the configuration directory and change to the test config:
+
+```
+cd /Users/jeff/test/Postgres/local/etc
+ln -s Makefile_test Makefile
+```
+
+Determine if any existing components are running and if so, shut them down:
+
+```
+make ps
+```
+
+Pull the new docker image: (not sure this is necessary)
+
+```
+docker pull jasmit/postgres-server:v0.3.x
+```
+
+Use the Makefile to build it all, then check the results:
+
+```
+make build-all
+make ps
+make logs
+```
+
+
+## Appendix A: NFS persistant storage
 
 ### Synology
 
