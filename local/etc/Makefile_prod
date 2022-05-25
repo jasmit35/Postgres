@@ -33,6 +33,35 @@ delete-network:
 
 ################################################################################
 
+create-volume:
+	@echo "---  volume  ---"
+	kubectl create -f volume_prod.yaml
+	kubectl get pv --all-namespaces 
+	@echo ""
+
+delete-volume:
+	@echo "---  volume  ---"
+	kubectl delete -f volume_prod.yaml
+	kubectl get pv --all-namespaces 
+	@echo ""
+
+################################################################################
+
+create-statefulset:
+	@echo "---  statefulsets  ---"
+	kubectl create -f statefulset_prod.yaml
+	kubectl get statefulsets --namespace=postgres
+	@echo ""
+
+delete-statefulset:
+	@echo "---  statefulsets  ---"
+	kubectl delete -f statefulset_prod.yaml
+	kubectl delete pvc postgres-volume-claim-postgres-statefulset-0 --namespace=postgres
+	kubectl get statefulsets --namespace=postgres
+	@echo ""
+
+################################################################################
+
 create-service:
 	@echo "---  services  ---"
 	kubectl create -f service.yaml
@@ -45,38 +74,24 @@ delete-service:
 	kubectl get services --namespace=postgres
 	@echo ""
 
-
-################################################################################
-
-create-statefulset:
-	@echo "---  statefulsets  ---"
-	kubectl create -f statefulset_test.yaml
-	kubectl get statefulsets --namespace=postgres
-	@echo ""
-
-delete-statefulset:
-	@echo "---  statefulsets  ---"
-	kubectl delete -f statefulset_test.yaml
-	kubectl get statefulsets --namespace=postgres
-	@echo ""
-
-
-################################################################################
-
-create-all: create-namespace create-network create-service create-statefulset
-
-delete-all: delete-statefulset delete-service delete-network delete-namespace
-
-delete: delete-statefulset delete-service
-
-create: create-service create-statefulset
-
 ################################################################################
 
 ps:
-	kubectl get statefulset -A
-	kubectl get pods --namespace=postgres
-	kubectl describe statefulset --namespace postgres
+	@echo "---  Namespaces  ---"
+	kubectl get namespace
+	@echo ""
+	@echo "---  Networks  ---"
+	kubectl get networkpolicy -A
+	@echo ""
+	@echo "---  Volumes  ---"
+	kubectl get pv --all-namespaces
+	@echo ""
+	@echo "---  Statefulsets  ---"
+	kubectl get statefulsets --namespace=postgres
+	@echo ""
+	@echo "---  Services  ---"
+	kubectl get services --namespace=postgres
+	@echo ""
 
 logs:
 	kubectl logs -l app=postgres --all-containers=true --namespace=postgres
@@ -84,3 +99,15 @@ logs:
 exec:
 	kubectl exec -it --namespace=postgres postgres-statefulset-0 -- /bin/bash
 
+
+################################################################################
+
+# create-all: create-namespace create-network create-service create-statefulset
+
+# delete-all: delete-statefulset delete-service delete-network delete-namespace
+
+# delete: delete-statefulset delete-service
+
+# create: create-service create-statefulset
+
+################################################################################

@@ -92,11 +92,11 @@ cd ~/prod
 auto-update -a Postgres -e prod
 ```
 
-Switch to the configuration directory and change to the test config:
+Switch to the configuration directory and change to the prod config:
 
 ```
-cd /Users/jeff/test/Postgres/local/etc
-ln -s Makefile_test Makefile
+cd /Users/jeff/prod/Postgres/local/etc
+ln -s Makefile_prod Makefile
 ```
 
 Determine if any existing components are running and if so, shut them down:
@@ -140,35 +140,32 @@ sudo cat /etc/exports
 #
 /volume4/BabyBlueNFS	192.168.1.0/24(rw,sync,no_subtree_check,no_root_squash,anonuid=999,anongid=999)
 ```
-
-### BabyBlue
-
-For each node in the cluster:
-
-Create a mount point on the node for the shared NFS volume:
-
-`sudo mkdir -p /mnt/Synology/NFS`
-
-Add a line to /etc/fstab to mount the volume on boot:
-
-```
-cat /etc/fstab
-
-#
-#  NFS
-synology.local:/volume4/BabyBlueNFS	/mnt/Synology/NFS	nfs	defaults 0 0
-```
-
 ### Enki
+Be sure to point kubectl to the prod system:
 
-From the deployment server:
+```
+kcgo prod
+kcpcc
+```
 
-Create the persistant volume:
+From the deployment server, use the make command to see what components are running. Shut down those necessary:
 
 ```
 cd prod/postgres/local/etc
-kubectl apply -f volume.yaml
+make ps
+make delete-xxx
 ```
+Use the makefile to recreate the necessary components:
+
+```
+make create-namespace
+make create-network
+make create-volume
+make create-statefulset
+make create-service
+```
+
+
 
 
 

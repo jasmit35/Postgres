@@ -13,34 +13,33 @@ spec:
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: "" 
-  local: 
-    path: /mnt/Synology/NFS
-#   claimRef:
-#     name: postgres-volume-claim-postgres-statefulset-0 
-#     namespace: postgres
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-          - knode1
-          - knode2
-          - knode3
+  storageClassName: nfs 
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  nfs:
+    path: /volume4/BabyBlueNFS
+    server: synology.local
 
 
+# kind: PersistentVolume
+# apiVersion: v1
+# metadata:
+#   name: postgres-volume 
+#   namespace: postgres 
 # spec:
 #   capacity:
-#     storage: 16Gi
+#     storage: 24Gi
 #   volumeMode: Filesystem
 #   accessModes:
 #     - ReadWriteOnce
 #   persistentVolumeReclaimPolicy: Retain
 #   storageClassName: "" 
 #   local: 
-#     path: /System/Volumes/Data/opt/app/postgres/data 
+#     path: /mnt/Synology/NFS
+#   claimRef:
+#     name: postgres-volume-claim-postgres-statefulset-0 
+#     namespace: postgres
 #   nodeAffinity:
 #     required:
 #       nodeSelectorTerms:
@@ -48,7 +47,7 @@ spec:
 #         - key: kubernetes.io/hostname
 #           operator: In
 #           values:
-#           - lima-rancher-desktop
-#   claimRef:
-#     name: postgres-volume-claim-postgres-statefulset-0 
-#     namespace: postgres
+#           - knode1
+#           - knode2
+#           - knode3
+

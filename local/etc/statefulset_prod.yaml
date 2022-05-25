@@ -33,7 +33,7 @@ spec:
       name: postgres-volume-claim
       namespace: postgres
     spec:
-      storageClassName: ""
+      storageClassName: nfs 
       volumeName: postgres-volume
       accessModes:
         - ReadWriteOnce
